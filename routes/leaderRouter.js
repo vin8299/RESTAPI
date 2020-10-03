@@ -1,6 +1,7 @@
 //Express Router
 const express = require('express');
 const bodyParser = require('body-parser');
+const authenticate = require('../authenticate');
 const Leaders = require('../models/leaders');
 
 const leaderRouter = express.Router();
@@ -21,7 +22,7 @@ leaderRouter.route('/')
     .catch((err) => {next(err)})
 })
 
-.post((req,res,next)=>{
+.post(authenticate.verifyUser,authenticate.verifyAdmin, (req,res,next)=>{
     Leaders.create(req.body)
     .then((leader) => {
         console.log("Created promotion", leader);
@@ -32,12 +33,12 @@ leaderRouter.route('/')
     .catch((err) => {next(err)})
 })
 
-.put( (req,res,next)=>{
+.put(authenticate.verifyUser,authenticate.verifyAdmin, (req,res,next)=>{
     res.statusCode=403;
     res.end("PUT operation will not be supported!");
 })
 
-.delete((req,res,next)=>{
+.delete(authenticate.verifyUser,authenticate.verifyAdmin, (req,res,next)=>{
     Leaders.remove({})
     .then((resp)=>{
         console.log("Deleted promotions Successfully");
@@ -60,12 +61,12 @@ leaderRouter.route('/:leaderId')
     .catch((err) => {next(err)})
 })
 
-.post((req,res,next)=>{
+.post(authenticate.verifyUser,authenticate.verifyAdmin, (req,res,next)=>{
     res.statusCode=403;
     res.end("POST request not supported!");
 })
 
-.put( (req,res,next)=>{
+.put(authenticate.verifyUser,authenticate.verifyAdmin, (req,res,next)=>{
     Leaders.findByIdAndUpdate(req.params.leaderId, {$set:req.body},{new:true})
     .then((leader) =>{
         res.statusCode=200;
@@ -75,7 +76,7 @@ leaderRouter.route('/:leaderId')
     .catch((err) => {next(err)})
 })
 
-.delete((req,res,next)=>{
+.delete(authenticate.verifyUser,authenticate.verifyAdmin, (req,res,next)=>{
     Leaders.findByIdAndDelete(req.params.leaderId)
     .then((resp)=>{
         console.log("Deleted promotion"+req.params.leaderId+ " Successfully");

@@ -3,14 +3,21 @@ var bodyParser = require('body-parser');
 var User = require('../models/user');
 var passport = require('passport');
 
+var authenticate = require('../authenticate');
+
 //Though we are using passport it provide various methods for registering the user and logging in
 
 var router = express.Router();
 router.use(bodyParser.json());
 
 /* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
+router.get('/', authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+  User.find({}).then((users) => {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.json(users);
+    }, (err) => next(err))
+    .catch((err) => next(err));
 });
 
 router.post('/signup',(req,res,next) =>{
@@ -22,11 +29,25 @@ router.post('/signup',(req,res,next) =>{
       res.json({err:err});
     }
     else{
-      passport.authenticate('local')(req,res,()=>{
-        res.statusCode=200;
-        res.setHeader("Content-Type",'application/json');
-        res.json({success:true,status:"Registration Successful!!"});
-      });
+      if(req.body.firstname){
+        user.firstname = req.body.firstname;
+      }
+      if(req.body.lastname){
+        user.lastname = req.body.lastname;
+      }
+      user.save((err,user)=>{
+        if(err){
+          res.statusCode=500;
+          res.setHeader("Content-Type","application/json");
+          res.json({err:err});
+          return;  
+        }
+        passport.authenticate('local')(req,res,()=>{
+          res.statusCode=200;
+          res.setHeader("Content-Type",'application/json');
+          res.json({success:true,status:"Registration Successful!!"});
+        });
+      })
     };
   })
 
@@ -57,12 +78,14 @@ router.post('/signup',(req,res,next) =>{
 
 
 router.post('/login',passport.authenticate('local'), (req,res,next) =>{
+  //Creating the token o provide to the user
+  var token = authenticate.getToken({_id : req.user._id});
 
   //Local authentication using passport
   // <-- The username and password is included in body of post mesaage -->
   res.statusCode=200;
   res.setHeader("Content-Type",'application/json');
-  res.json({success:true ,status:"You are logged in Successfully!!"});
+  res.json({success:true ,status:"You are logged in Successfully!!", token:token});
 
 
 //Basic authentication
